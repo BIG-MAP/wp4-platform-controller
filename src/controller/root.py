@@ -1,78 +1,87 @@
+import asyncio
 import logging
-from typing import List, Optional
+from enum import Enum
 
-from controller.system import PollingInterface
+from controller.system_lle import LLEStatus, LLESystem
+from controller.system_plc import PLCSystem
+
+
+class Status(Enum):
+    idle = "idle"
+    running = "running"
+    stopped = "stopped"
 
 
 class RootController:
-    def __init__(self, systems: List[PollingInterface] = []):
-        self._validate_systems_list(systems)
-        self.systems = systems
-        self._is_running = False
+    def __init__(self, plc: PLCSystem, lle: LLESystem, polling_interval: int = 5):
+        self.plc = plc
+        self.lle = lle
+        self.polling_interval = polling_interval
+        self.status = Status.idle
 
-    def _validate_systems_list(self, systems: List[PollingInterface]):
-        names = []
-        urls = []
+    async def start(self):
+        self.status = Status.running
+        logging.info("Root controller started")
 
-        for system in systems:
-            if system.name in names:
-                raise Exception("Duplicate system name")
-            if system.url in urls:
-                raise Exception("Duplicate system url")
-            names.add(system.name)
-            urls.add(system.url)
+    async def stop(self):
+        self.status = Status.stopped
+        logging.info("Root controller stopped")
 
-    def get_systems(self) -> List[dict]:
-        return self.systems
-
-    def get_system(self, name: str) -> Optional[PollingInterface]:
-        for system in self.systems:
-            if system.name == name:
-                return system
-        return None
-
-    def add_system(self, system: PollingInterface):
-        self.systems.append(system)
-
-    def remove_system(self, system: PollingInterface):
-        self.systems.remove(system)
-
-    async def start(self) -> List[dict]:
-        responses = []
-
-        for system in self.systems:
-            response = await system.start()
-            responses.append(response)
-
-        self._is_running = True
-
-        return responses
-
-    async def stop(self) -> List[dict]:
-        self._is_running = False
-
-        responses = []
-
-        for system in self.systems:
-            response = await system.stop()
-            responses.append(response)
-
-        return responses
+    async def get_status(self) -> Status:
+        return self.status
 
     async def poll(self):
-        lle_system = self.get_system("LLE")
-        plc_system = self.get_system("PLC")
+        logging.info("Starting root controller polling")
+
+        previous_lle_status = None
 
         while True:
-            if not self._is_running:
+            if self.status != Status.running:
+                # stopping underlying systems and updating variables at PLC
+
+                logging.info("Stopping root controller underlying systems")
+
+                self.lle.stop()
+
+                lle_status = await self.lle.get_status()
+                await self.plc.set_lle_status(lle_status.value)
+
+                # TODO: PLC server must support results
+                # lle_results = await self.lle.get_results()
+                # if lle_results is not None:
+                #     await self.plc.set_lle_results(lle_results)
+
                 break
 
-            lle_response = await lle_system.poll_step()
-            plc_response = await plc_system.poll_step()
+            # launching underlying systems
 
-            if lle_response is not None:
-                logging.debug("LLE response: %s", lle_response)
-                await plc_system.send_results(lle_response)
+            should_start = await self.plc.should_start()
+            logging.debug("Should start: %s", should_start)
 
-            if plc_response is not None:
-                logging.debug("PLC response: %s", plc_response)
+            if should_start:
+                response = await self.lle.start()
+                logging.debug("LLE response: %s", response)
+
+                # switching PLC to started=False so we don't start the LLE again
+                await self.plc.set_is_started(False)
+
+            lle_status = await self.lle.get_status()
+            lle_results = None
+
+            if (
+                previous_lle_status == LLEStatus.running
+                and lle_status == LLEStatus.finished
+            ):
+                lle_results = await self.lle.get_results()
+
+            if lle_results is not None:
+                # TODO: PLC server must support results
+                # await self.plc.set_lle_results(lle_results)
+                logging.debug("LLE results: %s", lle_results)
+
+            if lle_status != previous_lle_status:
+                await self.plc.set_lle_status(lle_status.value)
+                logging.debug("LLE status changed to: %s", lle_status)
+                previous_lle_status = lle_status
+
+            await asyncio.sleep(self.polling_interval)

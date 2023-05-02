@@ -1,17 +1,21 @@
-import asyncio
 import logging
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 import requests
-from controller.system import PollingInterface
+from controller.system import SystemInterface
 
 
-class APIStatus(Enum):
+class LLEStatus(Enum):
     idle = "idle"
     running = "running"
     finished = "finished"
     stopped = "stopped"
+
+
+@dataclass
+class LLESettings:
+    sleep_delay: int
 
 
 class Client:
@@ -22,10 +26,7 @@ class Client:
         response = requests.get(f"{self.url}/status")
         return response.json()
 
-    async def start(self, settings: Optional[dict] = None) -> dict:
-        if settings is None:
-            settings = {"sleep_delay": 30}
-
+    async def start(self, settings: dict) -> dict:
         response = requests.post(f"{self.url}/start", json=settings)
         return response.json()
 
@@ -58,7 +59,7 @@ class LLEFailedToStopException(BaseLLEException):
         super().__init__("LLE failed to stop")
 
 
-class LLESystem(PollingInterface):
+class LLESystem(SystemInterface):
     """
     LLESystem is a class responsible for interacting with the LLE system. LLE stands for Liquid-Liquid Extraction.
     LLE should be started when there is a start command on PLC. After that, LLE gets polled periodically for a status,
@@ -70,11 +71,10 @@ class LLESystem(PollingInterface):
         name: str,
         url: str,
         version: str = "0.0.0",
-        settings: dict | None = None,
-        polling_interval: int = 5,
+        settings: LLESettings | None = None,
     ):
         super().__init__(name, url, version)
-        self.polling_interval = polling_interval
+        self.settings = settings if settings is not None else LLESettings(30)
         self._client = Client(url)
         self._is_running = False
 
@@ -82,7 +82,7 @@ class LLESystem(PollingInterface):
         if self._is_running:
             raise LLERunningException()
 
-        response = await self._client.start()
+        response = await self._client.start(self.settings.__dict__)
         if response["status"] != "running":
             raise LLEFailedToStartException()
 
@@ -103,46 +103,9 @@ class LLESystem(PollingInterface):
 
         return response
 
-    async def poll(self):
-        while True:
-            if not self._is_running:
-                logging.info("LLE stopped. Stop polling")
-                break
+    async def get_status(self) -> LLEStatus:
+        response = await self._client.get_status()
+        return LLEStatus(response["status"])
 
-            status = await self.get_status()
-
-            if status["status"] == APIStatus.finished.value:
-                self._is_running = False
-                results = await self._client.get_results()
-                # TODO: send results to PLC
-                logging.info("Received LLE results. Stop polling")
-                break
-            elif status["status"] == APIStatus.stopped.value:
-                self._is_running = False
-                logging.info("LLE stopped. Stop polling")
-                break
-            elif status["status"] == APIStatus.idle.value:
-                logging.info("LLE has not started yet. Stop polling")
-                break
-
-            await asyncio.sleep(self.polling_interval)
-
-    async def poll_step(self) -> Optional[dict]:
-        status = await self.get_status()
-
-        if status["status"] == APIStatus.finished.value:
-            self._is_running = False
-            results = await self._client.get_results()
-            logging.debug("Received LLE results. Stop polling")
-            return results
-        elif status["status"] == APIStatus.stopped.value:
-            self._is_running = False
-            logging.debug("LLE stopped. Stop polling")
-        elif status["status"] == APIStatus.idle.value:
-            self._is_running = False
-            logging.debug("LLE has not started yet. Stop polling")
-
-        return None
-
-    async def get_status(self) -> dict:
-        return await self._client.get_status()
+    async def get_results(self) -> dict:
+        return await self._client.get_results()

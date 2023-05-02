@@ -1,6 +1,8 @@
 import logging
 
-from controller.system_lle import BaseLLEException, LLESystem
+from controller.root import RootController
+from controller.system_lle import BaseLLEException, LLESettings, LLESystem
+from controller.system_plc import PLCClientSettings, PLCSystem
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import JSONResponse
 
@@ -8,7 +10,21 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-lle_system = LLESystem(name="LLE", url="http://localhost:8000", polling_interval=2)
+plc_system = PLCSystem(
+    name="PLC",
+    url="opc.tcp://localhost:4840",
+    client_settings=PLCClientSettings(
+        namespace_id=2, lle_id=1, lle_is_started_id=2, lle_status_id=3, lle_results_id=4
+    ),
+)
+
+lle_system = LLESystem(
+    name="LLE",
+    url="http://localhost:8000",
+    settings=LLESettings(sleep_delay=30),
+)
+
+root_controller = RootController(plc_system, lle_system)
 
 
 @app.get("/")
@@ -18,20 +34,23 @@ async def root():
 
 @app.get("/start")
 async def start(background_tasks: BackgroundTasks):
-    response = await lle_system.start()
-    background_tasks.add_task(lle_system.poll)
-    return response
+    await root_controller.start()
+    background_tasks.add_task(root_controller.poll)
+    status = await root_controller.get_status()
+    return {"status": status}
 
 
 @app.get("/stop")
 async def stop():
-    response = await lle_system.stop()
-    return response
+    await root_controller.stop()
+    status = await root_controller.get_status()
+    return {"status": status}
 
 
 @app.get("/status")
 async def status():
-    return {"status": "running"}
+    status = await root_controller.get_status()
+    return {"status": status}
 
 
 @app.exception_handler(BaseLLEException)
