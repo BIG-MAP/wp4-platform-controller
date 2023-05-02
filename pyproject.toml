@@ -4,9 +4,14 @@ version = "0.1.0"
 description = ""
 authors = ["Ihar Suvorau <ihar.suvorau@gmail.com>"]
 readme = "README.md"
+packages = [{ include = "controller", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+fastapi = "^0.95.1"
+requests = "^2.29.0"
+uvicorn = "^0.22.0"
+asyncua = "^1.0.2"
 
 [tool.ruff]
 line-length = 120
