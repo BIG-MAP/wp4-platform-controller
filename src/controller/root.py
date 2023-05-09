@@ -100,8 +100,9 @@ class RootController:
         # if lle_results is not None:
         #     await self.plc.set_lle_results(lle_results)
 
+    @staticmethod
     async def _save_results(results: dict):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_path = f"results_{timestamp}.json"
+        output_path = f"output/results_{timestamp}.json"
         with open(output_path, "w") as f:
             f.write(results)

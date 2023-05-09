@@ -12,20 +12,22 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
+plc_api_url = os.environ.get("PLC_API_URL", "opc.tcp://localhost:4840")
 plc_system = PLCSystem(
     name="PLC",
-    url="opc.tcp://localhost:4840",
+    url=plc_api_url,
     client_settings=PLCClientSettings(
         namespace_id=2, lle_id=1, lle_is_started_id=2, lle_status_id=3, lle_results_id=4
     ),
 )
 
 lle_api_settings_path = os.environ.get("LLE_API_SETTINGS_PATH", "lle_settings.json")
+lle_api_url = os.environ.get("LLE_API_URL", "http://localhost:8000")
 lle_api_settings = LLEAPISettings.from_file(lle_api_settings_path)
 logging.info("LLE API settings: %s", lle_api_settings)
 lle_system = LLESystem(
     name="LLE",
-    url="http://localhost:8000",
+    url=lle_api_url,
     settings=lle_api_settings,
 )
 
