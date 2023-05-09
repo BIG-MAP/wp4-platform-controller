@@ -1,0 +1,25 @@
+services:
+  controller:
+    image: "nokal/wp4-platform-controller:0.1.0"
+    ports:
+      - "9000:9000"
+    environment:
+      - LLE_API_SETTINGS_PATH=/app/lle_settings.json
+    restart: "no"
+  
+  lle:
+    image: "nokal/wp4-platform-lle-mock:0.1.0"
+    ports:
+      - "8000:8000"
+    restart: "no"
+    volumes:
+      - "lle_output:/app/output"
+  
+  plc:
+    image: "nokal/wp4-platform-plc-mock:0.1.0"
+    ports:
+      - "4840:4840"
+    restart: "no"
+  
+volumes:
+  lle_output:
