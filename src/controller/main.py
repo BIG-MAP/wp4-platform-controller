@@ -58,11 +58,10 @@ async def stop():
 async def status():
     """
     Returns the status of the root controller.
-
-    TODO: Return statuses of underlying systems.
     """
     status = await root_controller.get_status()
-    return {"status": status}
+    system_statuses = await root_controller.get_system_statuses()
+    return {"status": status, "systems": system_statuses}
 
 
 @app.exception_handler(BaseLLEException)

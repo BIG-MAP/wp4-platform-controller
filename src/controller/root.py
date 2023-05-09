@@ -35,6 +35,12 @@ class RootController:
     async def get_status(self) -> Status:
         return self.status
 
+    async def get_system_statuses(self) -> dict:
+        return {
+            self.plc.name: None,
+            self.lle.name: await self.lle.get_status(),
+        }
+
     async def poll(self):
         logging.info("Starting root controller polling")
 
