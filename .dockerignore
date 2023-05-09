@@ -1,0 +1,6 @@
+*
+!src
+!lle_settings.json
+!poetry.lock
+!pyproject.toml
+!README.md
