@@ -1,7 +1,9 @@
 import logging
+import os
 
 from controller.root import RootController
-from controller.system_lle import BaseLLEException, LLESettings, LLESystem
+from controller.system_lle import BaseLLEException, LLESystem
+from controller.system_lle_settings import Settings as LLEAPISettings
 from controller.system_plc import PLCClientSettings, PLCSystem
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import JSONResponse
@@ -18,10 +20,13 @@ plc_system = PLCSystem(
     ),
 )
 
+lle_api_settings_path = os.environ.get("LLE_API_SETTINGS_PATH", "lle_settings.json")
+lle_api_settings = LLEAPISettings.from_file(lle_api_settings_path)
+logging.info("LLE API settings: %s", lle_api_settings)
 lle_system = LLESystem(
     name="LLE",
     url="http://localhost:8000",
-    settings=LLESettings(sleep_delay=30),
+    settings=lle_api_settings,
 )
 
 root_controller = RootController(plc_system, lle_system)

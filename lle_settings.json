@@ -1,0 +1,22 @@
+{
+    "liquid_type": "ethyl",
+    "settlingSettings": {
+        "scanInterval": 20,
+        "maxTime": 120
+    },
+    "scanSettings": {
+        "initialLEDs": 4,
+        "deltaLEDs": 16,
+        "travelDistance": 169
+    },
+    "detectionSettings": {
+        "smoothWindowSize": 7,
+        "smoothProminence": 0.06666666666666667,
+        "gradient2Prominence": 0.3333333333333333
+    },
+    "drainSettings": {
+        "portLower": 1,
+        "portUpper": 2,
+        "mlToDrainUpper": 500
+    }
+}

@@ -1,9 +1,9 @@
 import logging
-from dataclasses import dataclass
 from enum import Enum
 
 import requests
 from controller.system import SystemInterface
+from controller.system_lle_settings import Settings as LLEAPISettings
 
 
 class LLEStatus(Enum):
@@ -11,11 +11,6 @@ class LLEStatus(Enum):
     running = "running"
     finished = "finished"
     stopped = "stopped"
-
-
-@dataclass
-class LLESettings:
-    sleep_delay: int
 
 
 class Client:
@@ -26,8 +21,26 @@ class Client:
         response = requests.get(f"{self.url}/status")
         return response.json()
 
-    async def start(self, settings: dict) -> dict:
-        response = requests.post(f"{self.url}/start", json=settings)
+    async def start(self, settings: LLEAPISettings) -> dict:
+        response = self.start_settling(settings)
+        logging.debug("LLE startSettling response: %s", response)
+
+        response = await self.start_draining(settings)
+        logging.debug("LLE startDraining response: %s", response)
+
+        return response
+
+    async def start_settling(self, settings: LLEAPISettings) -> dict:
+        response = requests.post(
+            f"{self.url}/startSettling", json=settings.dict(exclude={"liquid_type"})
+        )
+        return response.json()
+
+    async def start_draining(self, settings: LLEAPISettings) -> dict:
+        response = requests.post(
+            f"{self.url}/startDraining/{settings.liquid_type.value}",
+            json=settings.dict(exclude={"liquid_type"}),
+        )
         return response.json()
 
     async def stop(self) -> dict:
@@ -71,10 +84,10 @@ class LLESystem(SystemInterface):
         name: str,
         url: str,
         version: str = "0.0.0",
-        settings: LLESettings | None = None,
+        settings: LLEAPISettings | None = None,
     ):
         super().__init__(name, url, version)
-        self.settings = settings if settings is not None else LLESettings(30)
+        self.settings = settings if settings is not None else LLEAPISettings()
         self._client = Client(url)
         self._is_running = False
 
@@ -82,13 +95,13 @@ class LLESystem(SystemInterface):
         if self._is_running:
             raise LLERunningException()
 
-        response = await self._client.start(self.settings.__dict__)
+        response = await self._client.start(settings=self.settings)
         if response["status"] != "running":
             raise LLEFailedToStartException()
 
-        logging.info("LLE started")
-
         self._is_running = True
+
+        logging.info("LLE started")
 
         return response
 

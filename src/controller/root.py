@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 from enum import Enum
 
@@ -73,6 +74,8 @@ class RootController:
                 lle_results = await self.lle.get_results()
 
             if lle_results is not None:
+                self._save_results(lle_results)
+
                 # TODO: PLC server must support results
                 # await self.plc.set_lle_results(lle_results)
                 logging.debug("LLE results: %s", lle_results)
@@ -96,3 +99,9 @@ class RootController:
         # lle_results = await self.lle.get_results()
         # if lle_results is not None:
         #     await self.plc.set_lle_results(lle_results)
+
+    async def _save_results(results: dict):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        output_path = f"results_{timestamp}.json"
+        with open(output_path, "w") as f:
+            f.write(results)
