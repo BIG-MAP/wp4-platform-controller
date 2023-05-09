@@ -13,6 +13,11 @@ class Status(Enum):
 
 
 class RootController:
+    """
+    RootController is the main controller responsible for communication between all underlying systems.
+    It starts and stops the underlying systems, and polls them for status updates periodically.
+    """
+
     def __init__(self, plc: PLCSystem, lle: LLESystem, polling_interval: int = 5):
         self.plc = plc
         self.lle = lle
@@ -37,20 +42,7 @@ class RootController:
 
         while True:
             if self.status != Status.running:
-                # stopping underlying systems and updating variables at PLC
-
-                logging.info("Stopping root controller underlying systems")
-
-                self.lle.stop()
-
-                lle_status = await self.lle.get_status()
-                await self.plc.set_lle_status(lle_status.value)
-
-                # TODO: PLC server must support results
-                # lle_results = await self.lle.get_results()
-                # if lle_results is not None:
-                #     await self.plc.set_lle_results(lle_results)
-
+                self._stop_systems()
                 break
 
             # launching underlying systems
@@ -85,3 +77,16 @@ class RootController:
                 previous_lle_status = lle_status
 
             await asyncio.sleep(self.polling_interval)
+
+    async def _stop_systems(self):
+        logging.info("Stopping root controller underlying systems")
+
+        self.lle.stop()
+        lle_status = await self.lle.get_status()
+
+        await self.plc.set_lle_status(lle_status.value)
+
+        # TODO: PLC server must support results
+        # lle_results = await self.lle.get_results()
+        # if lle_results is not None:
+        #     await self.plc.set_lle_results(lle_results)

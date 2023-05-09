@@ -34,6 +34,10 @@ async def root():
 
 @app.get("/start")
 async def start(background_tasks: BackgroundTasks):
+    """
+    Starts the root controller to poll the underlying systems, and waits for the PLC start signal
+    to notify other systems.
+    """
     await root_controller.start()
     background_tasks.add_task(root_controller.poll)
     status = await root_controller.get_status()
@@ -42,6 +46,9 @@ async def start(background_tasks: BackgroundTasks):
 
 @app.get("/stop")
 async def stop():
+    """
+    Stops the root controller and underlying systems.
+    """
     await root_controller.stop()
     status = await root_controller.get_status()
     return {"status": status}
@@ -49,6 +56,11 @@ async def stop():
 
 @app.get("/status")
 async def status():
+    """
+    Returns the status of the root controller.
+
+    TODO: Return statuses of underlying systems.
+    """
     status = await root_controller.get_status()
     return {"status": status}
 
