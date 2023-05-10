@@ -43,9 +43,13 @@ class RootController:
         }
 
     async def poll(self):
+        # TODO: use https://pypi.org/project/python-statemachine/ for state machine instead of if-else branching
+
         logging.info("Starting root controller polling")
 
         previous_lle_status = None
+        settling_finished = False
+        draining_finished = False
 
         while True:
             if self.status != Status.running:
@@ -58,8 +62,8 @@ class RootController:
             logging.debug("Should start: %s", should_start)
 
             if should_start:
-                response = await self.lle.start()
-                logging.debug("LLE response: %s", response)
+                response = await self.lle.start_settling()
+                logging.debug("LLE start settling response: %s", response)
 
                 # switching PLC to started=False so we don't start the LLE again
                 await self.plc.set_is_started(False)
@@ -71,7 +75,13 @@ class RootController:
                 previous_lle_status == LLEStatus.running
                 and lle_status == LLEStatus.finished
             ):
-                lle_results = await self.lle.get_results()
+                if not settling_finished:
+                    settling_finished = True
+                    response = await self.lle.start_draining()
+                    logging.debug("LLE start draining response: %s", response)
+                elif not draining_finished:
+                    draining_finished = True
+                    lle_results = await self.lle.get_results()
 
             if lle_results is not None:
                 self._save_results(lle_results)

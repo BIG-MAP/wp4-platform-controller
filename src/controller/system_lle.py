@@ -21,15 +21,6 @@ class Client:
         response = requests.get(f"{self.url}/status")
         return response.json()
 
-    async def start(self, settings: LLEAPISettings) -> dict:
-        response = self.start_settling(settings)
-        logging.debug("LLE startSettling response: %s", response)
-
-        response = await self.start_draining(settings)
-        logging.debug("LLE startDraining response: %s", response)
-
-        return response
-
     async def start_settling(self, settings: LLEAPISettings) -> dict:
         response = requests.post(
             f"{self.url}/startSettling", json=settings.dict(exclude={"liquid_type"})
@@ -89,25 +80,25 @@ class LLESystem(SystemInterface):
         super().__init__(name, url, version)
         self.settings = settings if settings is not None else LLEAPISettings()
         self._client = Client(url)
-        self._is_running = False
 
-    async def start(self) -> dict:
-        if self._is_running:
-            raise LLERunningException()
+    async def start_settling(self) -> dict:
+        response = await self._set_running(self._client.start_settling)
+        logging.info("LLE started settling")
+        return response
 
-        response = await self._client.start(settings=self.settings)
+    async def start_draining(self) -> dict:
+        response = await self._set_running(self._client.start_draining)
+        logging.info("LLE started draining")
+        return response
+
+    async def _set_running(self, client_func: callable) -> dict:
+        response = await client_func(settings=self.settings)
         if response["status"] != "running":
             raise LLEFailedToStartException()
-
-        self._is_running = True
-
-        logging.info("LLE started")
 
         return response
 
     async def stop(self) -> dict:
-        self._is_running = False
-
         response = await self._client.stop()
         if response["status"] != "stopped":
             raise LLEFailedToStopException()
