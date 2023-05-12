@@ -51,6 +51,18 @@ async def start(background_tasks: BackgroundTasks):
     return {"status": status}
 
 
+@app.get("/start_draining")
+async def start_draining(background_tasks: BackgroundTasks):
+    """
+    Starts the root controller to poll the underlying systems, and waits for the PLC start signal
+    to notify other systems. This is used for draining the LLE only. It doesn't start the settling.
+    """
+    await root_controller.start()
+    background_tasks.add_task(root_controller.poll_draining)
+    status = await root_controller.get_status()
+    return {"status": status}
+
+
 @app.get("/stop")
 async def stop():
     """

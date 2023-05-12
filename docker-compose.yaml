@@ -1,6 +1,6 @@
 services:
   controller:
-    image: "nokal/wp4-platform-controller:0.1.1"
+    image: "nokal/wp4-platform-controller:0.1.2"
     ports:
       - "9000:9000"
     environment:

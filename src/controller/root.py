@@ -59,11 +59,11 @@ class RootController:
             # launching underlying systems
 
             should_start = await self.plc.should_start()
-            logging.debug("Should start: %s", should_start)
+            logging.info("Should start: %s", should_start)
 
             if should_start:
                 response = await self.lle.start_settling()
-                logging.debug("LLE start settling response: %s", response)
+                logging.info("LLE start settling response: %s", response)
 
                 # switching PLC to started=False so we don't start the LLE again
                 await self.plc.set_is_started(False)
@@ -78,21 +78,71 @@ class RootController:
                 if not settling_finished:
                     settling_finished = True
                     response = await self.lle.start_draining()
-                    logging.debug("LLE start draining response: %s", response)
-                elif not draining_finished:
+                    logging.info("LLE start draining response: %s", response)
+                elif settling_finished and not draining_finished:
                     draining_finished = True
                     lle_results = await self.lle.get_results()
 
-            if lle_results is not None:
-                self._save_results(lle_results)
+                if lle_results is not None:
+                    self._save_results(lle_results)
 
                 # TODO: PLC server must support results
                 # await self.plc.set_lle_results(lle_results)
-                logging.debug("LLE results: %s", lle_results)
+                logging.info("LLE results: %s", lle_results)
 
             if lle_status != previous_lle_status:
                 await self.plc.set_lle_status(lle_status.value)
-                logging.debug("LLE status changed to: %s", lle_status)
+                logging.info("LLE status changed to: %s", lle_status)
+                previous_lle_status = lle_status
+
+            await asyncio.sleep(self.polling_interval)
+
+    async def poll_draining(self):
+        # TODO: use https://pypi.org/project/python-statemachine/ for state machine instead of if-else branching
+
+        logging.info("Starting root controller polling")
+
+        previous_lle_status = None
+        draining_finished = False
+
+        while True:
+            if self.status != Status.running:
+                self._stop_systems()
+                break
+
+            # launching underlying systems
+
+            should_start = await self.plc.should_start()
+            logging.info("Should start: %s", should_start)
+
+            if should_start:
+                response = await self.lle.start_draining()
+                logging.info("LLE start draining response: %s", response)
+
+                # switching PLC to started=False so we don't start the LLE again
+                await self.plc.set_is_started(False)
+
+            lle_status = await self.lle.get_status()
+            lle_results = None
+
+            if (
+                previous_lle_status == LLEStatus.running
+                and lle_status == LLEStatus.finished
+            ):
+                if not draining_finished:
+                    draining_finished = True
+                    lle_results = await self.lle.get_results()
+
+                if lle_results is not None:
+                    self._save_results(lle_results)
+
+                # TODO: PLC server must support results
+                # await self.plc.set_lle_results(lle_results)
+                logging.info("LLE results: %s", lle_results)
+
+            if lle_status != previous_lle_status:
+                await self.plc.set_lle_status(lle_status.value)
+                logging.info("LLE status changed to: %s", lle_status)
                 previous_lle_status = lle_status
 
             await asyncio.sleep(self.polling_interval)
@@ -114,5 +164,6 @@ class RootController:
     async def _save_results(results: dict):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_path = f"output/results_{timestamp}.json"
+        logging.info("Saving results to %s", output_path)
         with open(output_path, "w") as f:
             f.write(results)
