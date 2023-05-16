@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.9' ]
+        python-version: [ '3.11' ]
     env:
       DOCKER_IMAGE_NAME: nokal/wp4-platform-controller
     steps:

@@ -1,5 +1,9 @@
 # Robotic Synthesis Platform Operational Control
 
+![CI](https://github.com/BIG-MAP/wp4-platform-controller/actions/workflows/build.yaml/badge.svg)
+![Version](https://img.shields.io/github/v/tag/BIG-MAP/wp4-platform-controller)
+
+
 ## Installation
 
 This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependecies management. 
