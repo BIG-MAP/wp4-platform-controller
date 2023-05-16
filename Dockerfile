@@ -17,4 +17,4 @@ ENV PLC_API_URL=opc.tcp://plc:4840
 
 EXPOSE $PORT
 
-CMD ["bash", "-c", "poetry run uvicorn controller.main:app --port $PORT --host 0.0.0.0"]
+CMD ["bash", "-c", "poetry run uvicorn controller.api:app --port $PORT --host 0.0.0.0"]

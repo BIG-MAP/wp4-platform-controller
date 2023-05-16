@@ -1,9 +1,13 @@
 import logging
 from enum import Enum
 
-import requests
+from controller.lle.client import Client
+from controller.lle.exceptions import (
+    LLEFailedToStartException,
+    LLEFailedToStopException,
+)
 from controller.system import SystemInterface
-from controller.system_lle_settings import Settings as LLEAPISettings
+from controller.lle.settings import Settings
 
 
 class LLEStatus(Enum):
@@ -11,56 +15,6 @@ class LLEStatus(Enum):
     running = "running"
     finished = "finished"
     stopped = "stopped"
-
-
-class Client:
-    def __init__(self, url: str):
-        self.url = url
-
-    async def get_status(self) -> dict:
-        response = requests.get(f"{self.url}/status")
-        return response.json()
-
-    async def start_settling(self, settings: LLEAPISettings) -> dict:
-        response = requests.post(
-            f"{self.url}/startSettling", json=settings.dict(exclude={"liquid_type"})
-        )
-        return response.json()
-
-    async def start_draining(self, settings: LLEAPISettings) -> dict:
-        response = requests.post(
-            f"{self.url}/startDraining/{settings.liquid_type.value}",
-            json=settings.dict(exclude={"liquid_type"}),
-        )
-        return response.json()
-
-    async def stop(self) -> dict:
-        response = requests.post(f"{self.url}/stop")
-        return response.json()
-
-    async def get_results(self) -> dict:
-        response = requests.get(f"{self.url}/results")
-        return response.json()
-
-
-class BaseLLEException(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-
-class LLERunningException(BaseLLEException):
-    def __init__(self, message: str = "LLE is already running"):
-        super().__init__(message=message)
-
-
-class LLEFailedToStartException(BaseLLEException):
-    def __init__(self, message: str = "LLE failed to start"):
-        super().__init__(message=message)
-
-
-class LLEFailedToStopException(BaseLLEException):
-    def __init__(self, message: str = "LLE failed to stop"):
-        super().__init__(message=message)
 
 
 class LLESystem(SystemInterface):
@@ -75,10 +29,10 @@ class LLESystem(SystemInterface):
         name: str,
         url: str,
         version: str = "0.0.0",
-        settings: LLEAPISettings | None = None,
+        settings: Settings | None = None,
     ):
         super().__init__(name, url, version)
-        self.settings = settings if settings is not None else LLEAPISettings()
+        self.settings = settings if settings is not None else Settings()
         self._client = Client(url)
 
     async def start_settling(self) -> dict:

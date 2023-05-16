@@ -1,10 +1,13 @@
 import asyncio
-import datetime
+import json
 import logging
+import os
+from datetime import datetime
 from enum import Enum
 
-from controller.system_lle import LLEStatus, LLESystem
-from controller.system_plc import PLCSystem
+from controller.lle.system import LLEStatus, LLESystem
+from controller.lle.settings import Settings as LLEAPISettings
+from controller.plc import PLCClientSettings, PLCSystem
 
 
 class Status(Enum):
@@ -53,7 +56,7 @@ class RootController:
 
         while True:
             if self.status != Status.running:
-                self._stop_systems()
+                await self._stop_systems()
                 break
 
             # launching underlying systems
@@ -84,7 +87,7 @@ class RootController:
                     lle_results = await self.lle.get_results()
 
                 if lle_results is not None:
-                    self._save_results(lle_results)
+                    await self._save_results(lle_results)
 
                 # TODO: PLC server must support results
                 # await self.plc.set_lle_results(lle_results)
@@ -107,7 +110,7 @@ class RootController:
 
         while True:
             if self.status != Status.running:
-                self._stop_systems()
+                await self._stop_systems()
                 break
 
             # launching underlying systems
@@ -134,7 +137,7 @@ class RootController:
                     lle_results = await self.lle.get_results()
 
                 if lle_results is not None:
-                    self._save_results(lle_results)
+                    await self._save_results(lle_results)
 
                 # TODO: PLC server must support results
                 # await self.plc.set_lle_results(lle_results)
@@ -150,7 +153,7 @@ class RootController:
     async def _stop_systems(self):
         logging.info("Stopping root controller underlying systems")
 
-        self.lle.stop()
+        await self.lle.stop()
         lle_status = await self.lle.get_status()
 
         await self.plc.set_lle_status(lle_status.value)
@@ -166,4 +169,31 @@ class RootController:
         output_path = f"output/results_{timestamp}.json"
         logging.info("Saving results to %s", output_path)
         with open(output_path, "w") as f:
-            f.write(results)
+            f.write(json.dumps(results))
+
+
+def setup() -> RootController:
+    plc_api_url = os.environ.get("PLC_API_URL", "opc.tcp://localhost:4840")
+    plc_system = PLCSystem(
+        name="PLC",
+        url=plc_api_url,
+        client_settings=PLCClientSettings(
+            namespace_id=2,
+            lle_id=1,
+            lle_is_started_id=2,
+            lle_status_id=3,
+            lle_results_id=4,
+        ),
+    )
+
+    lle_api_settings_path = os.environ.get("LLE_API_SETTINGS_PATH", "lle_settings.json")
+    lle_api_url = os.environ.get("LLE_API_URL", "http://localhost:8000")
+    lle_api_settings = LLEAPISettings.from_file(lle_api_settings_path)
+    logging.info("LLE API settings: %s", lle_api_settings)
+    lle_system = LLESystem(
+        name="LLE",
+        url=lle_api_url,
+        settings=lle_api_settings,
+    )
+
+    return RootController(plc_system, lle_system)
