@@ -49,18 +49,18 @@ class BaseLLEException(Exception):
 
 
 class LLERunningException(BaseLLEException):
-    def __init__(self):
-        super().__init__("LLE is already running")
+    def __init__(self, message: str = "LLE is already running"):
+        super().__init__(message=message)
 
 
 class LLEFailedToStartException(BaseLLEException):
-    def __init__(self):
-        super().__init__("LLE failed to start")
+    def __init__(self, message: str = "LLE failed to start"):
+        super().__init__(message=message)
 
 
 class LLEFailedToStopException(BaseLLEException):
-    def __init__(self):
-        super().__init__("LLE failed to stop")
+    def __init__(self, message: str = "LLE failed to stop"):
+        super().__init__(message=message)
 
 
 class LLESystem(SystemInterface):
@@ -94,14 +94,18 @@ class LLESystem(SystemInterface):
     async def _set_running(self, client_func: callable) -> dict:
         response = await client_func(settings=self.settings)
         if response["status"] != "running":
-            raise LLEFailedToStartException()
+            raise LLEFailedToStartException(
+                message=f"LLE failed to start with response: {response}"
+            )
 
         return response
 
     async def stop(self) -> dict:
         response = await self._client.stop()
         if response["status"] != "stopped":
-            raise LLEFailedToStopException()
+            raise LLEFailedToStopException(
+                message=f"LLE failed to stop with response: {response}"
+            )
 
         logging.info("LLE stopped")
 
