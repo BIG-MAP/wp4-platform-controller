@@ -3,8 +3,27 @@
 ![CI](https://github.com/BIG-MAP/wp4-platform-controller/actions/workflows/build.yaml/badge.svg)
 ![Version](https://img.shields.io/github/v/tag/BIG-MAP/wp4-platform-controller)
 
+## Getting Started with Docker
 
-## Installation
+This pulls the latest version of the software:
+
+```shell
+docker pull nokal/wp4-platform-controller
+```
+
+Run it with:
+
+```shell
+docker run -p 9000:9000 -e LLE_API_URL=http://lle:8000 -e PLC_API_URL=opc.tcp://plc:4840 nokal/wp4-platform-controller
+```
+
+The controller is accessible at port 9000:
+
+```
+curl localhost:9000/start
+```
+
+## Getting Started from Source
 
 This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependecies management. 
 
@@ -14,8 +33,6 @@ Install Poetry with pip and the current package with the following commands:
 pip install poetry
 poetry install
 ```
-
-## Getting Started
 
 Start the server with HTTP API at port 9000:
 
@@ -31,7 +48,11 @@ curl localhost:9000/start
 
 ## Configuration
 
-Environmental variable `LLE_API_SETTINGS_PATH` can be used to specify the path to the configuration file. The default value is `lle_settings.json`. 
+Environmental variable `LLE_API_SETTINGS_PATH` can be used to specify the path to the configuration file inside a container. 
+
+To use a custom configuration file, mount it to the container and set the environmental variable to the path inside the container.
+
+The default value is `lle_settings.json`. 
 
 Default settings are the following:
 
