@@ -2,6 +2,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from .exceptions import LLESettingsFailed
+
 
 class SettlingSettings(BaseModel):
     scanInterval: int = Field(
@@ -106,5 +108,8 @@ class Settings(BaseModel):
 
     @staticmethod
     def from_file(path: str) -> "Settings":
-        with open(path, "r") as f:
-            return Settings.from_json(f.read())
+        try:
+            with open(path, "r") as f:
+                return Settings.from_json(f.read())
+        except FileNotFoundError:
+            raise LLESettingsFailed(f"Could not find file {path}")

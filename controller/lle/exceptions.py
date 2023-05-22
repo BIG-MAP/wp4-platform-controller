@@ -16,3 +16,8 @@ class LLEFailedToStartException(BaseLLEException):
 class LLEFailedToStopException(BaseLLEException):
     def __init__(self, message: str = "LLE failed to stop"):
         super().__init__(message=message)
+
+
+class LLESettingsFailed(BaseLLEException):
+    def __init__(self, message: str = "LLE settings failed"):
+        super().__init__(message=message)
