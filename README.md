@@ -25,7 +25,7 @@ curl localhost:9000/start
 
 ## Getting Started from Source
 
-This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependecies management. 
+This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependencies management. 
 
 Install Poetry with pip and the current package with the following commands:
 
@@ -80,3 +80,30 @@ Default settings are the following:
     }
 }
 ```
+
+## Getting Started with Airflow
+
+This project also contains an [Apache Airflow](https://airflow.apache.org) workflow that can be used instead of the RootController's internal state management (which is triggered by calling `localhost:9000/start`).
+
+Airflow-related dependencies are optional and can be installed with:
+
+```shell
+poetry install --with airflow
+```
+
+Airflow-related files and scripts are located in the `./airflow` directory. It contains the following files:
+
+- `dags` directory with the Airflow DAGs
+- `docker-compose.yml` Docker Compose manifest to start Airflow and all related services
+
+To start Airflow and all related services, run the following command from `./airflow` directory:
+
+```shell
+docker compose up
+```
+
+After all services are started successfully, the Airflow UI is accessible at [localhost:8080](http://localhost:8080). 
+
+The DAGs are automatically loaded from the `./airflow/dags` directory. 
+
+Default username is `airflow`, password is `airflow`.
