@@ -98,7 +98,7 @@ async def lle_results() -> dict:
     return {"results": results}
 
 
-@app.get("/plc/is_started")
+@app.get("/plc/is-started")
 async def plc_status() -> dict:
     """
     Returns if LLE should be started.
@@ -107,13 +107,13 @@ async def plc_status() -> dict:
     return {"is_started": is_started}
 
 
-@app.put("/plc/is_started")
-async def plc_set_is_started(is_started: bool) -> dict:
+@app.put("/plc/is-started")
+async def plc_set_is_started(value: bool) -> dict:
     """
     Sets if LLE should be started.
     """
-    await root_controller.plc.set_is_started(is_started)
-    return {"is_started": is_started}
+    await root_controller.plc.set_is_started(value)
+    return {"is_started": value}
 
 
 @app.exception_handler(BaseLLEException)

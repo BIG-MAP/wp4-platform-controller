@@ -1,5 +1,5 @@
 *
-!src
+!controller
 !lle_settings.json
 !poetry.lock
 !pyproject.toml
