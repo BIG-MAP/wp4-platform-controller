@@ -62,6 +62,60 @@ async def status():
     return {"status": status, "systems": system_statuses}
 
 
+@app.post("/lle/start_settling")
+async def lle_start_settling() -> dict:
+    """
+    Starts the settling process of the LLE.
+    """
+    response = await root_controller.lle.start_settling()
+    return response
+
+
+@app.post("/lle/start_draining")
+async def lle_start_draining() -> dict:
+    """
+    Starts the draining process of the LLE.
+    """
+    response = await root_controller.lle.start_draining()
+    return response
+
+
+@app.get("/lle/status")
+async def lle_status() -> dict:
+    """
+    Returns the status of the LLE.
+    """
+    status = await root_controller.lle.get_status()
+    return {"status": status}
+
+
+@app.get("/lle/results")
+async def lle_results() -> dict:
+    """
+    Returns the results of the LLE.
+    """
+    results = await root_controller.lle.get_results()
+    return {"results": results}
+
+
+@app.get("/plc/is_started")
+async def plc_status() -> dict:
+    """
+    Returns if LLE should be started.
+    """
+    is_started = await root_controller.plc.should_start()
+    return {"is_started": is_started}
+
+
+@app.put("/plc/is_started")
+async def plc_set_is_started(is_started: bool) -> dict:
+    """
+    Sets if LLE should be started.
+    """
+    await root_controller.plc.set_is_started(is_started)
+    return {"is_started": is_started}
+
+
 @app.exception_handler(BaseLLEException)
 async def base_exception_handler(request, exc):
     return JSONResponse(status_code=400, content={"error": exc.message})

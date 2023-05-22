@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 from enum import Enum
 
-from controller.lle.system import LLEStatus, LLESystem
 from controller.lle.settings import Settings as LLEAPISettings
+from controller.lle.system import LLEStatus, LLESystem
 from controller.plc import PLCClientSettings, PLCSystem
 
 
